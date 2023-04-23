@@ -7,13 +7,7 @@
 namespace rtc {
 extern "C" {
 
-//UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API Channel_close(int id);
-
 UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API Channel_send(int id, const char *data, int size);
-
-//UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Channel_isOpen(int id);
-
-//UNITY_INTERFACE_EXPORT bool UNITY_INTERFACE_API Channel_isClosed(int id);
 
 UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API Channel_bufferedAmount(int id);
 

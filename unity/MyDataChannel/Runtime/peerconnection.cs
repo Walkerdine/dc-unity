@@ -1,21 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.Runtime.InteropServices;
-
-#if !UNITY_WEBGL
-public delegate void LocalDescriptionCallback(int pc, string sdp, string type, IntPtr ptr);
-public delegate void LocalCandidateCallback(int pc, string cand, string mid, IntPtr ptr);
-public delegate void StateChangeCallback(int pc, State state, IntPtr ptr);
-public delegate void GatheringStateChangeCallback(int pc, GatheringState gathering_state, IntPtr ptr);
-public delegate void SignalingStateChangeCallback(int pc, SignalingState signaling_state, IntPtr ptr);
-public delegate void DataChannelCallback(int pc, int dc, IntPtr ptr);
-#else
-public delegate void LocalDescriptionCallback(IntPtr pSdp, IntPtr pType, IntPtr ptr);
-public delegate void LocalCandidateCallback(IntPtr pCandidate, IntPtr pSdpMid, IntPtr ptr);
-public delegate void StateChangeCallback(State state, IntPtr ptr);
-public delegate void GatheringStateChangeCallback(GatheringState gathering_state, IntPtr ptr);
-public delegate void SignalingStateChangeCallback(SignalingState signaling_state, IntPtr ptr);
-public delegate void DataChannelCallback(int dc, IntPtr ptr);
-#endif
+using AOT;
 
 [StructLayout(LayoutKind.Sequential)]
 public struct rtcConfiguration
@@ -70,28 +56,32 @@ public enum SignalingState
 
 public class PeerConnection
 {
+#if !UNITY_WEBGL
+    public delegate void LocalDescriptionCallback(int pc, string sdp, string type, IntPtr ptr);
+    public delegate void LocalCandidateCallback(int pc, string cand, string mid, IntPtr ptr);
+    public delegate void StateChangeCallback(int pc, State state, IntPtr ptr);
+    public delegate void GatheringStateChangeCallback(int pc, GatheringState gathering_state, IntPtr ptr);
+    public delegate void SignalingStateChangeCallback(int pc, SignalingState signaling_state, IntPtr ptr);
+    public delegate void DataChannelCallback(int pc, int dc, IntPtr ptr);
+#else
+    public delegate void LocalDescriptionCallback(string sdp, string type, IntPtr ptr);
+    public delegate void LocalCandidateCallback(string cand, string mid, IntPtr ptr);
+    public delegate void StateChangeCallback(State state, IntPtr ptr);
+    public delegate void GatheringStateChangeCallback(GatheringState gathering_state, IntPtr ptr);
+    public delegate void SignalingStateChangeCallback(SignalingState signaling_state, IntPtr ptr);
+    public delegate void DataChannelCallback(int dc, IntPtr ptr);
+#endif
+    
+    private static Dictionary<IntPtr, PeerConnection> instances;
     private readonly int _peerConnection;
-    public int Id { get; private set; }
+    public IntPtr Id { get; private set; }
     
     public Action<int> datachannel_callback;
-
     public Action<string,string> description_callback;
-
     public Action<string,string> candidate_callback;
-
     public Action<State> state_callback;
-
     public Action<GatheringState> gathering_state_callback;
-
     public Action<SignalingState> signaling_state_callback;
-
-    public string sdp { get; set; }
-    public string type { get; set; }
-    public string cand { get; set; }
-    public string mid { get; set; }
-    public State state { get; set; }
-    public GatheringState gathering_state { get; set; }
-    public SignalingState signaling_state { get; set; }
 
     public PeerConnection(string[] iceServers) 
     { 
@@ -112,10 +102,13 @@ public class PeerConnection
         config.iceServersCount = ice_servers_count;
 
         _peerConnection = PeerConnection_new(ref config);
-        Id = _peerConnection;
-        setUserPointer((IntPtr)Id);
+        Id = (IntPtr)_peerConnection;
+        setUserPointer(Id);
 
-        PeerConnectionCallbackBridge.SetInstance(this);
+        if (instances == null)
+            instances = new Dictionary<IntPtr, PeerConnection>();
+        
+        instances[Id] = this;
 
         // Free the memory for the individual strings
         for (int i = 0; i < ice_servers_count; i++)
@@ -130,18 +123,42 @@ public class PeerConnection
 
     public string localDescription()
     {
-        //IntPtr strPtr;
-        //int size;
-        //PeerConnection_localDescription(_peerConnection,strPtr,size);
+        IntPtr strPtr = Marshal.AllocHGlobal(4096);
+        int size=4096;
+        PeerConnection_localDescription(_peerConnection,strPtr,size);
+        string sdp = Marshal.PtrToStringAnsi(strPtr);
+        Marshal.FreeHGlobal(strPtr);
         return sdp;
     }
 
     public string remoteDescription()
     {
-        //IntPtr strPtr;
-        //int size;
-        //PeerConnection_remoteDescription(_peerConnection,strPtr,size);
-        return "";
+        IntPtr strPtr = Marshal.AllocHGlobal(4096);
+        int size=4096;
+        PeerConnection_remoteDescription(_peerConnection,strPtr,size);
+        string sdp = Marshal.PtrToStringAnsi(strPtr);
+        Marshal.FreeHGlobal(strPtr);
+        return sdp;
+    }
+    
+    public string localDescriptionType()
+    {
+        IntPtr strPtr = Marshal.AllocHGlobal(128);
+        int size=128;
+        PeerConnection_localDescriptionType(_peerConnection,strPtr,size);
+        string type = Marshal.PtrToStringAnsi(strPtr);
+        Marshal.FreeHGlobal(strPtr);
+        return type;
+    }
+
+    public string remoteDescriptionType()
+    {
+        IntPtr strPtr = Marshal.AllocHGlobal(128);
+        int size=128;
+        PeerConnection_remoteDescriptionType(_peerConnection,strPtr,size);
+        string type = Marshal.PtrToStringAnsi(strPtr);
+        Marshal.FreeHGlobal(strPtr);
+        return type;
     }
 
     public DataChannel createDataChannel(string label, bool unordered, int maxRetransmits, int maxPacketLifeTime)
@@ -155,56 +172,56 @@ public class PeerConnection
 
     public void addRemoteCandidate(string cand, string mid) => PeerConnection_addRemoteCandidate(_peerConnection, cand, mid);
 
-    public void onDataChannelCallback(DataChannelCallback callback) => PeerConnection_onDataChannel(_peerConnection, Marshal.GetFunctionPointerForDelegate(callback));
-
-    public void onLocalDescriptionCallback(LocalDescriptionCallback callback) => PeerConnection_onLocalDescription(_peerConnection, Marshal.GetFunctionPointerForDelegate(callback));
-
-    public void onLocalCandidateCallback(LocalCandidateCallback callback) => PeerConnection_onLocalCandidate(_peerConnection, Marshal.GetFunctionPointerForDelegate(callback));
-
-    public void onStateChangeCallback(StateChangeCallback callback) => PeerConnection_onStateChange(_peerConnection, Marshal.GetFunctionPointerForDelegate(callback));
-
-    public void onGatheringStateChangeCallback(GatheringStateChangeCallback callback) => PeerConnection_onGatheringStateChange(_peerConnection, Marshal.GetFunctionPointerForDelegate(callback));
-
-    public void onSignalingStateChangeCallback(SignalingStateChangeCallback callback) => PeerConnection_onSignalingStateChange(_peerConnection, Marshal.GetFunctionPointerForDelegate(callback));
-    
     public void onDataChannel(Action<int> callback)
     {
-        datachannel_callback = callback;
+        instances[Id].datachannel_callback = callback;
+        PeerConnection_onDataChannel(_peerConnection, OnDataChannel);
     }
 
     public void onLocalDescription(Action<string,string> callback)
     {
-        description_callback = callback;
+        instances[Id].description_callback = callback;
+        PeerConnection_onLocalDescription(_peerConnection, OnLocalDescription);
     }
 
     public void onLocalCandidate(Action<string,string> callback)
     {
-        candidate_callback = callback;
+        instances[Id].candidate_callback = callback;
+        PeerConnection_onLocalCandidate(_peerConnection, OnLocalCandidate);
     }
 
     public void onStateChange(Action<State> callback)
     {
-        state_callback = callback;
+        instances[Id].state_callback = callback;
+        PeerConnection_onStateChange(_peerConnection, OnStateChange);
     }
 
     public void onGatheringStateChange(Action<GatheringState> callback) 
     {
-        gathering_state_callback = callback;
+        instances[Id].gathering_state_callback = callback;
+        PeerConnection_onGatheringStateChange(_peerConnection, OnGatheringStateChange);
     }
 
     public void onSignalingStateChange(Action<SignalingState> callback) 
     {
-        signaling_state_callback = callback;
+        instances[Id].signaling_state_callback = callback;
+        PeerConnection_onSignalingStateChange(_peerConnection, OnSignalingStateChange);
     }
     
     [DllImport(DLL.DLL_NAME)]
     private static extern int PeerConnection_new(ref rtcConfiguration config);
 
     [DllImport(DLL.DLL_NAME)]
-    private static extern IntPtr PeerConnection_localDescription(int peerconnection, IntPtr Buffer, int size);
+    private static extern void PeerConnection_localDescription(int peerconnection, IntPtr Buffer, int size);
 
     [DllImport(DLL.DLL_NAME)]
-    private static extern IntPtr PeerConnection_remoteDescription(int peerconnection, IntPtr Buffer, int size);
+    private static extern void PeerConnection_remoteDescription(int peerconnection, IntPtr Buffer, int size);
+    
+    [DllImport(DLL.DLL_NAME)]
+    private static extern void PeerConnection_localDescriptionType(int peerconnection, IntPtr Buffer, int size);
+
+    [DllImport(DLL.DLL_NAME)]
+    private static extern void PeerConnection_remoteDescriptionType(int peerconnection, IntPtr Buffer, int size);
 
     [DllImport(DLL.DLL_NAME)]
     private static extern int PeerConnection_createDataChannel(int peerconnection, string label, bool unordered, int maxRetransmits, int maxPacketLifeTime);
@@ -216,24 +233,99 @@ public class PeerConnection
     private static extern void PeerConnection_addRemoteCandidate(int peerconnection, string cand, string mid);
 
     [DllImport(DLL.DLL_NAME)]
-    private static extern void PeerConnection_onDataChannel(int peerconnection, [MarshalAs(UnmanagedType.FunctionPtr)] IntPtr callback);
+    private static extern void PeerConnection_onDataChannel(int peerconnection, DataChannelCallback callback);
 
     [DllImport(DLL.DLL_NAME)]
-    private static extern void PeerConnection_onLocalDescription(int peerconnection, [MarshalAs(UnmanagedType.FunctionPtr)] IntPtr callback);
+    private static extern void PeerConnection_onLocalDescription(int peerconnection, LocalDescriptionCallback callback);
 
     [DllImport(DLL.DLL_NAME)]
-    private static extern void PeerConnection_onLocalCandidate(int peerconnection, [MarshalAs(UnmanagedType.FunctionPtr)] IntPtr callback);
+    private static extern void PeerConnection_onLocalCandidate(int peerconnection, LocalCandidateCallback callback);
 
     [DllImport(DLL.DLL_NAME)]
-    private static extern void PeerConnection_onStateChange(int peerconnection, [MarshalAs(UnmanagedType.FunctionPtr)] IntPtr callback);
+    private static extern void PeerConnection_onStateChange(int peerconnection, StateChangeCallback callback);
 
     [DllImport(DLL.DLL_NAME)]
-    private static extern void PeerConnection_onGatheringStateChange(int peerconnection, [MarshalAs(UnmanagedType.FunctionPtr)] IntPtr callback);
+    private static extern void PeerConnection_onGatheringStateChange(int peerconnection, GatheringStateChangeCallback callback);
 
     [DllImport(DLL.DLL_NAME)]
-    private static extern void PeerConnection_onSignalingStateChange(int peerconnection, [MarshalAs(UnmanagedType.FunctionPtr)] IntPtr callback);
+    private static extern void PeerConnection_onSignalingStateChange(int peerconnection, SignalingStateChangeCallback callback);
     
     [DllImport(DLL.DLL_NAME)]
     private static extern void PeerConnection_setUserPointer(int peerconnection, IntPtr ptr);
+    
+#if !UNITY_WEBGL
+    [MonoPInvokeCallback(typeof(LocalDescriptionCallback))]
+    public static void OnLocalDescription(int pc, string sdp, string type, IntPtr ptr)
+    {
+        instances?[ptr].description_callback(sdp, type);
+    }
 
+    [MonoPInvokeCallback(typeof(LocalCandidateCallback))]
+    public static void OnLocalCandidate(int pc, string cand, string mid, IntPtr ptr)
+    {
+        instances?[ptr].candidate_callback(cand, mid);
+    }
+    
+    [MonoPInvokeCallback(typeof(StateChangeCallback))]
+    public static void OnStateChange(int pc, State state, IntPtr ptr)
+    {
+        instances?[ptr].state_callback(state);
+    }
+    
+    [MonoPInvokeCallback(typeof(GatheringStateChangeCallback))]
+    public static void OnGatheringStateChange(int pc, GatheringState state, IntPtr ptr)
+    {
+        instances?[ptr].gathering_state_callback(state);
+    }
+    
+    [MonoPInvokeCallback(typeof(SignalingStateChangeCallback))]
+    public static void OnSignalingStateChange(int pc, SignalingState state, IntPtr ptr)
+    {
+        instances?[ptr].signaling_state_callback(state);
+    }
+
+    [MonoPInvokeCallback(typeof(DataChannelCallback))]
+    public static void OnDataChannel(int pc, int dc, IntPtr ptr)
+    {
+        instances?[ptr].datachannel_callback(dc);
+    }
+
+#else
+    
+    [MonoPInvokeCallback(typeof(LocalDescriptionCallback))]
+    public static void OnLocalDescription(string sdp, string type, IntPtr ptr)
+    {
+        instances?[ptr].description_callback(sdp, type);
+    }
+
+    [MonoPInvokeCallback(typeof(LocalCandidateCallback))]
+    public static void OnLocalCandidate(string cand, string mid, IntPtr ptr)
+    {
+        instances?[ptr].candidate_callback(cand, mid);
+    }
+
+    [MonoPInvokeCallback(typeof(StateChangeCallback))]
+    public static void OnStateChange(State state, IntPtr ptr)
+    {
+        instances?[ptr].state_callback(state);
+    }
+    
+    [MonoPInvokeCallback(typeof(GatheringStateChangeCallback))]
+    public static void OnGatheringStateChange(GatheringState state, IntPtr ptr)
+    {
+        instances?[ptr].gathering_state_callback(state);
+    }
+    
+    [MonoPInvokeCallback(typeof(SignalingStateChangeCallback))]
+    public static void OnSignalingStateChange(SignalingState state, IntPtr ptr)
+    {
+        instances?[ptr].signaling_state_callback(state);
+    }
+
+    [MonoPInvokeCallback(typeof(DataChannelCallback))]
+    public static void OnDataChannel(int dc, IntPtr ptr)
+    {
+        instances?[ptr].datachannel_callback(dc);
+    }
+#endif
 }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using AOT;
 
 public class DataChannel : Channel
 {
@@ -8,18 +9,24 @@ public class DataChannel : Channel
     
     public DataChannel(int datachannel)
     {
+        _channel=datachannel;
         _datachannel = datachannel;
-        Id = datachannel;
-        setUserPointer((IntPtr)Id);
-        ChannelCallbackBridge.SetInstance(this);
+        Id = (IntPtr)_datachannel;
+        setUserPointer(Id);
+        if (instances == null)
+            instances = new Dictionary<IntPtr, Channel>();
+
+        instances[Id] = this;
     }
     
     public string label()
     {
-        //IntPtr strPtr;
-        //int buffer_size;
-        //DataChannel_label(_datachannel, strPtr, buffer_size);
-        return "";
+        IntPtr strPtr = Marshal.AllocHGlobal(512);
+        int size=512;
+        DataChannel_label(_datachannel,strPtr,size);
+        string label = Marshal.PtrToStringAnsi(strPtr);
+        Marshal.FreeHGlobal(strPtr);
+        return label;
     }
 
     [DllImport(DLL.DLL_NAME)]

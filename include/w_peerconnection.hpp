@@ -15,6 +15,10 @@ UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API PeerConnection_localDescription(
 
 UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API PeerConnection_remoteDescription(int pc, char *buffer, int size);
 
+UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API PeerConnection_localDescriptionType(int pc, char *buffer, int size);
+
+UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API PeerConnection_remoteDescriptionType(int pc, char *buffer, int size);
+
 UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API PeerConnection_createDataChannel(int pc, const char* label, bool unordered, int maxRetransmits, int maxPacketLifeTime);
 
 UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API PeerConnection_setRemoteDescription(int pc, const char *sdp, const char *type);

@@ -7,10 +7,10 @@
 namespace rtc {
 extern "C" {
 
-UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API WebSocket_new(const char *url);
+UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API WebSocket_open(const char *url);
 
 UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API WebSocket_delete(int id);
-	
+
 UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API WebSocket_onOpen(int id, rtcOpenCallbackFunc callback);
 
 UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API WebSocket_onError(int id, rtcErrorCallbackFunc callback);

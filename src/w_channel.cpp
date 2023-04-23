@@ -18,11 +18,6 @@ UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Channel_onOpen(int id, rtcOpenCa
     rtcSetOpenCallback(id, callback);
 }
 
-//UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Channel_onClosed(int id, rtcClosedCallbackFunc callback)
-//{
-//  rtcSetClosedCallback(id, callback);
-//}
-
 UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API Channel_onError(int id, rtcErrorCallbackFunc callback) 
 {
     rtcSetErrorCallback(id, callback);

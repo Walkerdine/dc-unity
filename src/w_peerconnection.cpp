@@ -1,5 +1,6 @@
 #include "w_peerconnection.hpp"
 #include <cstring>
+#include <cstdlib>
 
 namespace rtc {
 extern "C" {
@@ -24,6 +25,7 @@ UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API PeerConnection_localDescription(
     char* str = rtcGetLocalDescription(pc);
     strcpy(buffer,str);
     (void)size;
+    free(str);
 #else
     rtcGetLocalDescription(pc, buffer, size);
 #endif
@@ -35,10 +37,36 @@ UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API PeerConnection_remoteDescription
     char* str = rtcGetRemoteDescription(pc);
     strcpy(buffer,str);
     (void)size;
+    free(str);
 #else
     rtcGetRemoteDescription(pc, buffer, size);
 #endif
 }
+
+UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API PeerConnection_localDescriptionType(int pc, char *buffer, int size)
+{
+#if __EMSCRIPTEN__
+    char* str = rtcGetLocalDescriptionType(pc);
+    strcpy(buffer,str);
+    (void)size;
+    free(str);
+#else
+    rtcGetLocalDescriptionType(pc, buffer, size);
+#endif
+}
+
+UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API PeerConnection_remoteDescriptionType(int pc, char *buffer, int size)
+{
+#if __EMSCRIPTEN__
+    char* str = rtcGetRemoteDescriptionType(pc);
+    strcpy(buffer,str);
+    (void)size;
+    free(str);
+#else
+    rtcGetRemoteDescriptionType(pc, buffer, size);
+#endif
+}
+
 
 UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API PeerConnection_createDataChannel(int pc, const char* label, bool unordered, int maxRetransmits, int maxPacketLifeTime)
 {
