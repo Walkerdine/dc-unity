@@ -14,14 +14,14 @@ $ git submodule update --init --recursive --depth 1
 ## Building
 Build for Linux requires gcc
 ```bash
-$ cmake -S. -B./build-linux/ -DCAPI_STDCALL=ON
+$ cmake -S. -B./build-linux/
 $ cd build-linux
 $ make -j2
 ```
 
 Build for windows requires visual studio to be installed
 ```bash
-$ cmake -S. -B./build-win/ -A x64 -DCAPI_STDCALL=ON
+$ cmake -S. -B./build-win/ -A x64
 $ cd build-win
 $ make -j2
 ```
