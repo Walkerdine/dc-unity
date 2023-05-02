@@ -24,47 +24,48 @@ namespace WebRTC {
     
     public class WebSocketServer {
         
-        private delegate void WebSocketClientCallback(int webSocketServerID, int webSocketID, IntPtr userPtr);
+        private delegate void WebSocketClientCallback(int webSocketServerId, int webSocketId, int userId);
         
         private Action<int,int> clientCallback;
-        private static Dictionary<IntPtr, WebSocketServer> instances;
-        public int id {get; private set;}
+        private static Dictionary<int, WebSocketServer> instances = new Dictionary<int, WebSocketServer>();
+        private int _id;
+        
+        public int Id {get; private set;}
         
         public WebSocketServer(ref rtcWsServerConfiguration config, Action<int,int> callback) {
             clientCallback = callback;
-            id = WebSocketServer_new(ref config, OnClient);
-            SetUserPointer();
-            if (instances == null)
-                instances = new Dictionary<IntPtr, WebSocketServer>();
-            instances[(IntPtr)id] = this;
+            _id = WebSocketServer_new(ref config, OnClient);
+            instances[_id] = this;
+            SetUserId(_id);
         }
     
         ~WebSocketServer() {
-            Delete();
+            WebSocketServer_delete(_id);
+        }
+    
+        public int Port() => WebSocketServer_getPort(_id);
+        
+        public void SetUserId(int userId) {
+            Id = userId;
+            WebSocketServer_setUserPointer(_id, Id);
         }
         
-        public int Delete() => WebSocketServer_delete(id);
-    
-        public int Port() => WebSocketServer_getPort(id);
-        
-        private void SetUserPointer() => WebSocketServer_setUserPointer(id, (IntPtr)id);
-        
         [MonoPInvokeCallback(typeof(WebSocketClientCallback))]
-        private static void OnClient(int wsserver, int ws, IntPtr ptr) {
-            instances?[ptr].clientCallback(wsserver, ws);
+        private static void OnClient(int webSocketServerId, int webSocketId, int userId) {
+            instances?[webSocketServerId].clientCallback(userId, webSocketId);
         }
     
         [DllImport(DLL.DLL_NAME)]
         private static extern int WebSocketServer_new(ref rtcWsServerConfiguration config, WebSocketClientCallback callback);
     
         [DllImport(DLL.DLL_NAME)]
-        private static extern int WebSocketServer_delete(int wsserver);
+        private static extern int WebSocketServer_delete(int id);
     
         [DllImport(DLL.DLL_NAME)]
-        private static extern int WebSocketServer_getPort(int wsserver);
+        private static extern int WebSocketServer_getPort(int id);
         
         [DllImport(DLL.DLL_NAME)]
-        private static extern void WebSocketServer_setUserPointer(int wsserver, IntPtr ptr);
+        private static extern void WebSocketServer_setUserPointer(int id, int userId);
     }
 }
 

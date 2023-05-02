@@ -7,7 +7,7 @@
 namespace rtc {
 extern "C" {
 
-UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API PeerConnection_new(const rtcConfiguration* config);
+UNITY_INTERFACE_EXPORT int UNITY_INTERFACE_API PeerConnection_new(const char ** ice_servers, int ice_servers_count);
 
 UNITY_INTERFACE_EXPORT void UNITY_INTERFACE_API PeerConnection_delete(int pc);
 
